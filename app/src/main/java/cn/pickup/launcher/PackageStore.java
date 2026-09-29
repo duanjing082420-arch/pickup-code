@@ -19,6 +19,8 @@ final class PackageStore {
         String code = "";      // 取件码，如：3-1-2040
         String station = "";   // 驿站位置（可选）
         long createdAt;        // 录入时间
+        boolean picked;        // 是否已取件
+        long pickedAt;         // 取件时间
     }
 
     private static final String PREFS_NAME = "pickup_packages";
@@ -50,6 +52,31 @@ final class PackageStore {
         return true;
     }
 
+    /** 标记（或取消标记）某个取件码为已取件。 */
+    static void markPicked(Context context, Item target, boolean picked) {
+        List<Item> items = load(context);
+        for (Item item : items) {
+            if (item.createdAt == target.createdAt && item.code.equals(target.code)) {
+                item.picked = picked;
+                item.pickedAt = picked ? System.currentTimeMillis() : 0L;
+                break;
+            }
+        }
+        save(context, items);
+    }
+
+    /** 只保留未取件的记录，清空历史。 */
+    static void clearHistory(Context context) {
+        List<Item> items = load(context);
+        List<Item> remaining = new ArrayList<>();
+        for (Item item : items) {
+            if (!item.picked) {
+                remaining.add(item);
+            }
+        }
+        save(context, remaining);
+    }
+
     /** 剪贴板内容是否已处理过（避免同一段文字反复弹窗）。 */
     static boolean isClipHandled(Context context, String value) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -74,6 +101,8 @@ final class PackageStore {
                 item.code = object.optString("code", "");
                 item.station = object.optString("station", "");
                 item.createdAt = object.optLong("createdAt", 0L);
+                item.picked = object.optBoolean("picked", false);
+                item.pickedAt = object.optLong("pickedAt", 0L);
                 items.add(item);
             }
         } catch (Exception ignored) {
@@ -91,6 +120,8 @@ final class PackageStore {
                 object.put("code", item.code);
                 object.put("station", item.station);
                 object.put("createdAt", item.createdAt);
+                object.put("picked", item.picked);
+                object.put("pickedAt", item.pickedAt);
                 array.put(object);
             }
         } catch (Exception ignored) {
