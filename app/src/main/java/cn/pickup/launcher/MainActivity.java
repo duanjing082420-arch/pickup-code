@@ -61,8 +61,6 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_SMS_PERMISSION = 1001;
     private EditText searchInput;
     private String searchQuery = "";
-    private EditText searchInput;
-    private String keyword = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -240,11 +238,8 @@ public final class MainActivity extends Activity {
         // ---- 顶部问候 ----
         root.addView(buildHero("你好 👋", "先看有没有包裹，再出发去驿站"));
 
-        // ---- 查询框 ----
-        root.addView(buildSearchBar());
-
         // ---- 查询框（旧版没有，本次新增） ----
-        root.addView(buildSearchBox(), verticalParams(dp(12)));
+        root.addView(buildSearchBar());
 
         // ---- 五个待取入口 ----
         LinearLayout grid = new LinearLayout(this);
@@ -754,12 +749,6 @@ public final class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         refreshPackageList();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        refreshPackageList();
         updateAutoStatus();
         checkClipboard();
     }
@@ -819,7 +808,18 @@ public final class MainActivity extends Activity {
                     "还没有录入包裹。点右上「＋ 添加包裹」录入取件码，它就会一直显示在这里。"));
             return;
         }
+        List<PackageStore.Item> matched = new ArrayList<>();
         for (PackageStore.Item item : items) {
+            if (matchQuery(item)) {
+                matched.add(item);
+            }
+        }
+        if (matched.isEmpty()) {
+            packageListContainer.addView(hintCard("🔍",
+                    "没有匹配「" + searchQuery + "」的包裹，换个关键词试试。"));
+            return;
+        }
+        for (PackageStore.Item item : matched) {
             packageListContainer.addView(packageCard(item));
         }
     }
